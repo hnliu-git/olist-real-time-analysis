@@ -100,7 +100,7 @@ print("Acc of the model: %.3f"%acc)
 
 # Read from Kafka
 df = spark.readStream \
-          .format("kafka") \           
+          .format("kafka") \
           .option("kafka.bootstrap.servers", "localhost:9092") \
           .option("subscribe", "review") \
           .load()

@@ -1,6 +1,7 @@
 package sparkstructuredstreaming
 
 import java.util.HashMap
+import java.io._
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.spark.streaming.kafka._
@@ -13,6 +14,8 @@ import org.apache.spark.storage.StorageLevel
 import java.util.{Date, Properties}
 import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord, ProducerConfig}
 import scala.util.Random
+
+import org.apache.commons.io.FileUtils
 
 object KafkaSpark {
   def main(args: Array[String]) {
@@ -60,10 +63,27 @@ object KafkaSpark {
       .mapGroupsWithState(updateStatus _)
       .toDF("key", "pos_cot")
     
-      
+    val writerForText = new ForeachWriter[Row] {
+        var fileWriter: FileWriter = _
+        
+        override def process(value: Row): Unit = {
+            fileWriter.append(value.toSeq.mkString(",")+"\n")
+        }
+        
+        override def close(errorOrNull: Throwable): Unit = {
+            fileWriter.close()
+        }
+        
+        override def open(partitionId: Long, version: Long): Boolean = {
+//             FileUtils.forceMkdir(new File(s"/home/osboxes/Projects/dic/project/data/sent_res/${partitionId}"))
+            fileWriter = new FileWriter(new File(s"/home/osboxes/Projects/dic/project/data/top_rated.csv"), true)
+            true
+        }
+    }
+
     val query = res.writeStream
-      .format("console")
       .outputMode("update")
+      .foreach(writerForText)
       .start()
 
     query.awaitTermination()
