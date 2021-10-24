@@ -112,18 +112,19 @@ kv_pairs = df.selectExpr("CAST(key AS STRING)", "CAST(value AS STRING)")
 split_v = split(kv_pairs.value, "\[SEP\]")
 
 # Name them
-df = kv_pairs.withColumn("review_id", split_v.getItem(0)) \
+df = kv_pairs.withColumn("product_id", split_v.getItem(0)) \
              .withColumn("text", split_v.getItem(1)) \
              .drop("value") \
-             .toDF("order_id", "review_id", "text")
+             .drop("key") \
+             .toDF("product_id", "text")
 
 # Apply the ML pipeline
-textset = df.select(split(text_preprocess("text"), ' ').alias("words"), "order_id", "text").dropna()
+textset = df.select(split(text_preprocess("text"), ' ').alias("words"), "product_id", "text").dropna()
 predictions = model.transform(textset)
 
 # label index to str
 label2str = udf(lambda x: ['pos', 'neg'][int(x)])
-pred_df = predictions.withColumnRenamed("order_id", "key") \
+pred_df = predictions.withColumnRenamed("product_id", "key") \
                      .select("key",label2str("prediction").alias('value'))
 
 # Write to kafka in order to do Stateful operations

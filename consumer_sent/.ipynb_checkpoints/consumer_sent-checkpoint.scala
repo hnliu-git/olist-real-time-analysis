@@ -75,7 +75,6 @@ object KafkaSpark {
         }
         
         override def open(partitionId: Long, version: Long): Boolean = {
-//             FileUtils.forceMkdir(new File(s"/home/osboxes/Projects/dic/project/data/sent_res/${partitionId}"))
             fileWriter = new FileWriter(new File(s"/home/osboxes/Projects/dic/project/data/top_rated.csv"), true)
             true
         }

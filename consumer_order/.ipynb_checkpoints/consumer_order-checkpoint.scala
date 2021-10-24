@@ -23,19 +23,25 @@ object KafkaSpark {
     val spark = SparkSession
       .builder()
       .master("local")
-      .appName("ConsumerSent")
+      .appName("ConsumerOrder")
       .getOrCreate()
 
     val df = spark.readStream
       .format("kafka")
       .option("kafka.bootstrap.servers", "localhost:9092")
-      .option("subscribe", "sentiment")
+      .option("subscribe", "order")
       .load()
     
     import spark.implicits._
 
     // get the value col
-    val pairs = df.selectExpr("CAST(key AS STRING)", "CAST(value AS STRING)")
+    val pairs = df.selectExpr("CAST(key AS STRING)", "CAST(value AS STRING)").as[(String, String)]
+
+    val products = pairs.map { row =>
+        val group = row._2.split("\\[SEP\\]")
+        group(1)
+    }.toDF("product_id")
+      
       
     import org.apache.spark.sql._
     import org.apache.spark.sql.streaming._
@@ -47,10 +53,7 @@ object KafkaSpark {
             val status = state.getOption.getOrElse(0)
             var status_var = status
             actions.foreach { action =>
-                if (action.getString(1) == "pos"){
-                    status_var = status_var + 1
-                }
-                
+                status_var = status_var + 1
             }
             
             state.update(status_var)
@@ -58,10 +61,10 @@ object KafkaSpark {
     }
     
       
-    val res = pairs
+    val res = products
       .groupByKey(x => (x.getString(0)))
       .mapGroupsWithState(updateStatus _)
-      .toDF("key", "pos_cot")
+      .toDF("product_id", "cot")
     
     val writerForText = new ForeachWriter[Row] {
         var fileWriter: FileWriter = _
@@ -75,14 +78,14 @@ object KafkaSpark {
         }
         
         override def open(partitionId: Long, version: Long): Boolean = {
-            fileWriter = new FileWriter(new File(s"/home/osboxes/Projects/dic/project/data/top_rated.csv"), true)
+            fileWriter = new FileWriter(new File(s"/home/osboxes/Projects/dic/project/data/top_purchased.csv"), true)
             true
         }
     }
 
     val query = res.writeStream
-      .outputMode("update")
       .foreach(writerForText)
+      .outputMode("update")
       .start()
 
     query.awaitTermination()
