@@ -7,6 +7,12 @@ The analyzer can output a real-time top-10 rated(based on sentiment analysis) an
 
 ### Description
 
+#### [Data](https://www.kaggle.com/olistbr/brazilian-ecommerce?select=olist_orders_dataset.csv.)
+The data is from Kaggle by Olist. It has 100k purchase records from 2016 to 2018 and part of them have review
+records, anonymized customer information, seller information, and product information.
+In our project, although the dataset are static files, we will read the
+purchase and review records in stream to simulate those behaviors.
+
 #### [Producer](producer.ipynb)
 A producer that reads from files and produces streaming data to Kafka based on the timestamps is implemented
 
